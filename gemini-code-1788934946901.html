@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Ice Cream Truck Portfolio | ธนณัฏฐ์ สมาวงษ์ (บีม)</title>
+    <!-- Tailwind CSS สำหรับจัดสไตล์ UI -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Prompt -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            font-family: 'Prompt', sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #0b0f19;
+            color: #ffffff;
+            user-select: none;
+        }
+
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* Glassmorphism UI */
+        .glass-panel {
+            background: rgba(18, 24, 38, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .glass-button {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-button:hover {
+            background: rgba(255, 107, 129, 0.25);
+            border-color: rgba(255, 107, 129, 0.6);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(255, 107, 129, 0.3);
+        }
+
+        .glass-button.active {
+            background: linear-gradient(135deg, #ff6b81, #ff4757);
+            border-color: #ff6b81;
+            box-shadow: 0 0 20px rgba(255, 107, 129, 0.5);
+        }
+
+        /* Modal Overlay Popups */
+        .modal {
+            transition: opacity 0.4s ease, transform 0.4s ease;
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(0.95);
+        }
+
+        .modal.active {
+            opacity: 1;
+            pointer-events: auto;
+            transform: scale(1);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.2);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #ff6b81;
+            border-radius: 4px;
+        }
+
+        /* Loading Screen */
+        #loader {
+            position: fixed;
+            inset: 0;
+            z-index: 50;
+            background: #0b0f19;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.8s ease;
+        }
+    </style>
+
+    <!-- Import Three.js via ES Modules -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+
+    <!-- Loading Screen -->
+    <div id="loader">
+        <div class="relative w-24 h-24 mb-6">
+            <div class="absolute inset-0 rounded-full border-4 border-pink-500/20 animate-ping"></div>
+            <div class="absolute inset-0 rounded-full border-t-4 border-pink-500 animate-spin"></div>
+            <div class="absolute inset-0 flex items-center justify-center text-pink-500 text-2xl font-bold">
+                <i class="fa-solid fa-ice-cream animate-bounce"></i>
+            </div>
+        </div>
+        <h2 class="text-2xl font-bold tracking-wider text-white mb-2">3D ICE CREAM TRUCK</h2>
+        <p class="text-gray-400 text-sm">กำลังสร้างโมเดล 3D และจัดเตรียมองค์ประกอบ...</p>
+    </div>
+
+    <!-- 3D Canvas CONTAINER -->
+    <div id="canvas-container"></div>
+
+    <!-- UI Header -->
+    <header class="fixed top-0 left-0 right-0 z-20 p-6 flex justify-between items-center pointer-events-none">
+        <div class="glass-panel px-6 py-3 rounded-2xl pointer-events-auto flex items-center gap-4 border border-pink-500/30">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-pink-500 to-rose-400 flex items-center justify-center text-white shadow-lg shadow-pink-500/40">
+                <i class="fa-solid fa-truck-monster text-xl"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-pink-400 to-rose-200">
+                    ธนณัฏฐ์ สมาวงษ์ (บีม)
+                </h1>
+                <p class="text-xs text-pink-300/80">3D Artist & Game Developer Portfolio</p>
+            </div>
+        </div>
+
+        <div class="hidden md:flex glass-panel px-5 py-2.5 rounded-full pointer-events-auto text-xs text-gray-300 items-center gap-3">
+            <span><i class="fa-solid fa-hand-pointer text-pink-400 mr-1"></i> หมุน/ลากเพื่อมองรอบๆ รถ</span>
+            <span class="text-gray-600">|</span>
+            <span><i class="fa-solid fa-circle-dot text-cyan-400 mr-1"></i> คลิกป้ายบนรถเพื่อซูมดูข้อมูล</span>
+        </div>
+    </header>
+
+    <!-- Navigation Camera Controls -->
+    <nav class="fixed bottom-6 left-1/2 -translate-x-1/2 z-20 glass-panel p-2 rounded-2xl flex items-center gap-2 pointer-events-auto border border-white/10 shadow-2xl">
+        <button id="btn-overview" onclick="focusCamera('overview')" class="glass-button active px-5 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2">
+            <i class="fa-solid fa-eye"></i> <span>มุมมองรวม</span>
+        </button>
+        <button id="btn-menu" onclick="focusCamera('menu')" class="glass-button px-5 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2">
+            <i class="fa-solid fa-book-open text-pink-400"></i> <span>แนะนำตัว (ใบเมนู)</span>
+        </button>
+        <button id="btn-skills" onclick="focusCamera('skills')" class="glass-button px-5 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2">
+            <i class="fa-solid fa-shield-halved text-amber-400"></i> <span>สกิล (ป้ายหน้ารถ)</span>
+        </button>
+        <button id="btn-portfolio" onclick="focusCamera('portfolio')" class="glass-button px-5 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2">
+            <i class="fa-solid fa-tv text-cyan-400"></i> <span>ผลงาน (ป้าย LED หลัง)</span>
+        </button>
+        <button id="btn-inside" onclick="focusCamera('inside')" class="glass-button px-5 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2">
+            <i class="fa-solid fa-door-open text-emerald-400"></i> <span>ภายในรถ</span>
+        </button>
+    </nav>
+
+    <!-- Modal 1: About Me (ใบเมนู) -->
+    <div id="modal-menu" class="modal fixed inset-0 z-30 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+        <div class="relative w-full max-w-2xl bg-slate-900/90 border-2 border-pink-500/50 rounded-3xl p-8 shadow-2xl shadow-pink-500/20 overflow-hidden">
+            <button onclick="closeModals()" class="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/10 hover:bg-rose-500 text-white flex items-center justify-center transition-all">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <div class="flex items-center gap-3 mb-6">
+                <span class="text-3xl text-pink-400"><i class="fa-solid fa-utensils"></i></span>
+                <div>
+                    <h2 class="text-2xl font-bold text-white tracking-wide">SPECIAL ICE CREAM MENU</h2>
+                    <p class="text-xs text-pink-400 uppercase tracking-widest">แนะนำตัวเอง / About Me</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="md:col-span-1 bg-slate-800/60 p-5 rounded-2xl border border-pink-500/20 text-center flex flex-col items-center justify-center">
+                    <div class="w-24 h-24 rounded-2xl bg-gradient-to-tr from-pink-500 to-amber-400 p-1 mb-4 shadow-lg">
+                        <div class="w-full h-full bg-slate-900 rounded-xl flex items-center justify-center text-4xl text-pink-300">
+                            <i class="fa-solid fa-user-astronaut"></i>
+                        </div>
+                    </div>
+                    <h3 class="text-lg font-bold text-white">ธนณัฏฐ์ สมาวงษ์</h3>
+                    <p class="text-sm text-pink-400 font-semibold mb-2">" บีม (Beam) "</p>
+                    <span class="inline-block px-3 py-1 bg-pink-500/20 border border-pink-500/40 text-pink-300 text-xs rounded-full">
+                        Game & Animation
+                    </span>
+                </div>
+
+                <div class="md:col-span-2 space-y-4">
+                    <div class="bg-slate-800/40 p-4 rounded-xl border border-white/5">
+                        <h4 class="text-xs font-semibold text-gray-400 uppercase mb-1"><i class="fa-solid fa-graduation-cap text-pink-400 mr-1"></i> การศึกษาปัจจุบัน</h4>
+                        <p class="text-sm font-medium text-gray-200">กำลังศึกษาอยู่สาขาเอก<span class="text-pink-300 font-semibold"> เกมและแอนิเมชัน</span> (Game and Animation)</p>
+                    </div>
+
+                    <div class="bg-slate-800/40 p-4 rounded-xl border border-white/5">
+                        <h4 class="text-xs font-semibold text-gray-400 uppercase mb-1"><i class="fa-solid fa-heart text-pink-400 mr-1"></i> เป้าหมายและความสนใจ</h4>
+                        <p class="text-xs text-gray-300 leading-relaxed">
+                            มีความหลงใหลในการพัฒนาเกมและการสร้างงาน 3D สื่อสารจินตนาการผ่านโมเดล แอนิเมชัน และระบบการเล่นที่สนุกสนาน มุ่งมั่นที่จะก้าวสู่การเป็น 3D Artist และ Game Developer มืออาชีพ
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 2: Skills (ป้ายหน้ารถ) -->
+    <div id="modal-skills" class="modal fixed inset-0 z-30 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+        <div class="relative w-full max-w-2xl bg-slate-900/90 border-2 border-amber-500/50 rounded-3xl p-8 shadow-2xl shadow-amber-500/20 overflow-hidden">
+            <button onclick="closeModals()" class="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/10 hover:bg-rose-500 text-white flex items-center justify-center transition-all">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <div class="flex items-center gap-3 mb-6">
+                <span class="text-3xl text-amber-400"><i class="fa-solid fa-screwdriver-wrench"></i></span>
+                <div>
+                    <h2 class="text-2xl font-bold text-white tracking-wide">CREATIVE SKILLS</h2>
+                    <p class="text-xs text-amber-400 uppercase tracking-widest">ทักษะและความชำนาญ</p>
+                </div>
+            </div>
+
+            <div class="space-y-5">
+                <div class="bg-slate-800/50 p-4 rounded-2xl border border-amber-500/20">
+                    <div class="flex justify-between items-center mb-2">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-cube text-amber-400"></i>
+                            <span class="font-semibold text-white">ออกแบบโมเดล 3D (3D Modeling & Texturing)</span>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-300 mt-1">การปั้นโมเดลฉาก สิ่งของ Props และตัวละคร ทั้งรูปแบบ High Polygon และ Low Polygon พร้อมการทำ Texture ที่สมจริงและมีมิติ</p>
+                </div>
+
+                <div class="bg-slate-800/50 p-4 rounded-2xl border border-amber-500/20">
+                    <div class="flex justify-between items-center mb-2">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-film text-amber-400"></i>
+                            <span class="font-semibold text-white">การทำแอนิเมชัน (3D Animation & Rigging)</span>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-300 mt-1">การจัดกระดูก (Rigging), Skinning และการกำหนดการเคลื่อนไหว Keyframe Animation สำหรับตัวละครและวัตถุให้ดูสมจริงและเป็นธรรมชาติ</p>
+                </div>
+
+                <div class="bg-slate-800/50 p-4 rounded-2xl border border-amber-500/20">
+                    <div class="flex justify-between items-center mb-2">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-gamepad text-amber-400"></i>
+                            <span class="font-semibold text-white">การทำเกม (Game Development & Design)</span>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-300 mt-1">การพัฒนาระบบการเล่นเกม (Gameplay Mechanisms), การจัดองค์ประกอบฉาก แสงเงา (Lighting) และ UI เพื่อสร้างประสบการณ์ผู้เล่นที่ดีเยี่ยม</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 3: Portfolio (ป้าย LED หลังรถ) -->
+    <div id="modal-portfolio" class="modal fixed inset-0 z-30 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+        <div class="relative w-full max-w-4xl bg-slate-900/95 border-2 border-cyan-500/50 rounded-3xl p-8 shadow-2xl shadow-cyan-500/20 overflow-hidden max-h-[90vh] flex flex-col">
+            <button onclick="closeModals()" class="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/10 hover:bg-rose-500 text-white flex items-center justify-center transition-all z-10">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <div class="flex items-center gap-3 mb-6">
+                <span class="text-3xl text-cyan-400"><i class="fa-solid fa-tv"></i></span>
+                <div>
+                    <h2 class="text-2xl font-bold text-white tracking-wide">PORTFOLIO SHOWCASE</h2>
+                    <p class="text-xs text-cyan-400 uppercase tracking-widest">ผลงานพัฒนาเกมและงาน 3D</p>
+                </div>
+            </div>
+
+            <div class="overflow-y-auto pr-2 space-y-6 flex-1">
+                <!-- Unity Game -->
+                <div class="bg-slate-800/60 border border-cyan-500/30 rounded-2xl p-5 flex flex-col md:flex-row gap-5 items-center">
+                    <div class="w-full md:w-1/3 h-40 bg-gradient-to-tr from-cyan-900 to-blue-900 rounded-xl flex items-center justify-center relative overflow-hidden">
+                        <i class="fa-brands fa-unity text-6xl text-cyan-300"></i>
+                    </div>
+                    <div class="w-full md:w-2/3 space-y-2">
+                        <span class="px-3 py-1 bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 text-xs rounded-full font-semibold">Unity Engine</span>
+                        <h3 class="text-lg font-bold text-white">3D Game Development with Unity</h3>
+                        <p class="text-xs text-gray-300 leading-relaxed">
+                            การสร้างสรรค์ตัวเกม 3 มิติจากโปรแกรม Unity เขียนโค้ดระบบต่อสู้ ออกแบบฉาก (Level Design) และการจัดทำฟิสิกส์การเคลื่อนที่ของตัวละคร
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Maya Animation -->
+                <div class="bg-slate-800/60 border border-pink-500/30 rounded-2xl p-5 flex flex-col md:flex-row gap-5 items-center">
+                    <div class="w-full md:w-1/3 h-40 bg-gradient-to-tr from-pink-900 to-rose-900 rounded-xl flex items-center justify-center relative overflow-hidden">
+                        <i class="fa-solid fa-cubes text-6xl text-pink-300"></i>
+                    </div>
+                    <div class="w-full md:w-2/3 space-y-2">
+                        <span class="px-3 py-1 bg-pink-500/20 border border-pink-500/40 text-pink-300 text-xs rounded-full font-semibold">Autodesk Maya</span>
+                        <h3 class="text-lg font-bold text-white">3D Modeling & Animation in Maya</h3>
+                        <p class="text-xs text-gray-300 leading-relaxed">
+                            การปั้นโมเดล 3D ด้วย Autodesk Maya รวมถึงการลงโครงสร้างกระดูก (Rigging) สกินนิ่ง และทำแอนิเมชันท่าทางตัวละครที่ประณีต
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Blender Models -->
+                <div class="bg-slate-800/60 border border-amber-500/30 rounded-2xl p-5 flex flex-col md:flex-row gap-5 items-center">
+                    <div class="w-full md:w-1/3 h-40 bg-gradient-to-tr from-amber-900 to-orange-900 rounded-xl flex items-center justify-center relative overflow-hidden">
+                        <i class="fa-solid fa-wand-magic-sparkles text-6xl text-amber-300"></i>
+                    </div>
+                    <div class="w-full md:w-2/3 space-y-2">
+                        <span class="px-3 py-1 bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs rounded-full font-semibold">Blender 3D</span>
+                        <h3 class="text-lg font-bold text-white">Realistic 3D Assets & Ice Cream Truck</h3>
+                        <p class="text-xs text-gray-300 leading-relaxed">
+                            งานปั้นโมเดลสิ่งของประกอบฉากและยานพาหนะ เช่น รถไอศกรีมรายละเอียดสูง ด้วยโปรแกรม Blender เน้นการสร้าง Texture และแสงเงาที่เหมือนจริงที่สุด
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 4: Inside Details (ภายในรถ) -->
+    <div id="modal-inside" class="modal fixed inset-0 z-30 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+        <div class="relative w-full max-w-xl bg-slate-900/95 border-2 border-emerald-500/50 rounded-3xl p-8 shadow-2xl shadow-emerald-500/20">
+            <button onclick="closeModals()" class="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/10 hover:bg-rose-500 text-white flex items-center justify-center transition-all">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <div class="flex items-center gap-3 mb-6">
+                <span class="text-3xl text-emerald-400"><i class="fa-solid fa-store"></i></span>
+                <div>
+                    <h2 class="text-2xl font-bold text-white tracking-wide">TRUCK INTERIOR</h2>
+                    <p class="text-xs text-emerald-400 uppercase tracking-widest">รายละเอียดภายในตัวรถ</p>
+                </div>
+            </div>
+
+            <div class="space-y-4 text-xs text-gray-300">
+                <p class="text-sm text-gray-200">
+                    เปิดหน้ารถเพื่อโชว์รายละเอียดการตกแต่งภายในรถไอศกรีมสุดสมจริงประกอบด้วย:
+                </p>
+                <div class="space-y-2">
+                    <div class="bg-slate-800/50 p-3 rounded-xl border border-white/5 flex items-center gap-3">
+                        <i class="fa-solid fa-check text-emerald-400 text-base"></i>
+                        <span><strong>ตู้แช่แข็งไอศกรีม:</strong> บรรจุถาดตักไอศกรีมหลากสีสัน</span>
+                    </div>
+                    <div class="bg-slate-800/50 p-3 rounded-xl border border-white/5 flex items-center gap-3">
+                        <i class="fa-solid fa-check text-emerald-400 text-base"></i>
+                        <span><strong>เครื่องทำไอศกรีม Soft Serve:</strong> โมเดลสแตนเลสพร้อมรายละเอียดคันโยก</span>
+                    </div>
+                    <div class="bg-slate-800/50 p-3 rounded-xl border border-white/5 flex items-center gap-3">
+                        <i class="fa-solid fa-check text-emerald-400 text-base"></i>
+                        <span><strong>พวงมาลัยและห้องคนขับ:</strong> ดีไซน์เหมือนรถจริง</span>
+                    </div>
+                    <div class="bg-slate-800/50 p-3 rounded-xl border border-white/5 flex items-center gap-3">
+                        <i class="fa-solid fa-check text-emerald-400 text-base"></i>
+                        <span><strong>ระบบไฟ Neon ในตัวรถ:</strong> เพิ่มความสวยงามและมิติของแสง</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN THREE.JS SCRIPT -->
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        let scene, camera, renderer, controls;
+        let truckGroup, menuSign, frontSign, ledSign;
+        let targetCameraPos = new THREE.Vector3(12, 7, 14);
+        let targetLookAt = new THREE.Vector3(0, 1.5, 0);
+
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        const interactiveObjects = [];
+
+        // Dynamic Texture 1: Menu Board (ใบเมนู)
+        function createMenuTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 768;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = '#1e1b4b';
+            ctx.fillRect(0, 0, 512, 768);
+
+            ctx.strokeStyle = '#ff6b81';
+            ctx.lineWidth = 16;
+            ctx.strokeRect(10, 10, 492, 748);
+
+            ctx.fillStyle = '#ff6b81';
+            ctx.font = 'bold 36px Prompt, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('ICE CREAM MENU', 256, 70);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '20px Prompt, sans-serif';
+            ctx.fillText('--- ABOUT ME ---', 256, 110);
+
+            ctx.textAlign = 'left';
+            ctx.fillStyle = '#ffd166';
+            ctx.font = 'bold 26px Prompt, sans-serif';
+            ctx.fillText('ชื่อ: ธนณัฏฐ์ สมาวงษ์', 40, 180);
+
+            ctx.fillStyle = '#00d2d3';
+            ctx.font = 'bold 24px Prompt, sans-serif';
+            ctx.fillText('ชื่อเล่น: บีม (Beam)', 40, 230);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '20px Prompt, sans-serif';
+            ctx.fillText('สาขาเอก:', 40, 290);
+            ctx.fillStyle = '#ff9ff3';
+            ctx.font = 'bold 24px Prompt, sans-serif';
+            ctx.fillText('เกมและแอนิเมชัน', 40, 330);
+
+            // Ice Cream Graphic
+            ctx.fillStyle = '#ff6b81';
+            ctx.beginPath(); ctx.arc(256, 520, 70, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#ffd166';
+            ctx.beginPath(); ctx.arc(200, 500, 50, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#48dbfb';
+            ctx.beginPath(); ctx.arc(312, 500, 50, 0, Math.PI * 2); ctx.fill();
+
+            // Cone
+            ctx.fillStyle = '#d97706';
+            ctx.beginPath();
+            ctx.moveTo(180, 550);
+            ctx.lineTo(332, 550);
+            ctx.lineTo(256, 680);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 22px Prompt, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('คลิกเพื่ออ่านรายละเอียด', 256, 725);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.needsUpdate = true;
+            return texture;
+        }
+
+        // Dynamic Texture 2: Front Skill Board (ป้ายหน้ารถ)
+        function createFrontSkillTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1024;
+            canvas.height = 320;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(0, 0, 1024, 320);
+
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 12;
+            ctx.strokeRect(10, 10, 1004, 300);
+
+            ctx.fillStyle = '#f59e0b';
+            ctx.font = 'bold 44px Prompt, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('CREATIVE SKILLS', 512, 65);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 24px Prompt, sans-serif';
+            ctx.fillText('• ออกแบบโมเดล 3D   • การทำแอนิเมชัน   • การทำเกม', 512, 130);
+
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(80, 170, 260, 100);
+            ctx.fillRect(382, 170, 260, 100);
+            ctx.fillRect(684, 170, 260, 100);
+
+            ctx.strokeStyle = '#38bdf8';
+            ctx.strokeRect(80, 170, 260, 100);
+            ctx.strokeRect(382, 170, 260, 100);
+            ctx.strokeRect(684, 170, 260, 100);
+
+            ctx.fillStyle = '#38bdf8';
+            ctx.font = 'bold 22px Prompt, sans-serif';
+            ctx.fillText('3D MODELING', 210, 210);
+            ctx.fillText('ANIMATION', 512, 210);
+            ctx.fillText('GAME DEV', 814, 210);
+
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '18px Prompt, sans-serif';
+            ctx.fillText('High/Low Poly', 210, 245);
+            ctx.fillText('Rigging & Action', 512, 245);
+            ctx.fillText('Unity Engine', 814, 245);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.needsUpdate = true;
+            return texture;
+        }
+
+        // Dynamic Texture 3: LED Billboard (ป้าย LED ด้านหลัง)
+        function createLedPortfolioTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1024;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = '#050b14';
+            ctx.fillRect(0, 0, 1024, 512);
+
+            // Grid Lines
+            ctx.strokeStyle = 'rgba(0, 240, 255, 0.15)';
+            ctx.lineWidth = 2;
+            for(let i=0; i<1024; i+=16) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 512); ctx.stroke(); }
+            for(let j=0; j<512; j+=16) { ctx.beginPath(); ctx.moveTo(0, j); ctx.lineTo(1024, j); ctx.stroke(); }
+
+            ctx.strokeStyle = '#00f0ff';
+            ctx.lineWidth = 10;
+            ctx.strokeRect(10, 10, 1004, 492);
+
+            ctx.fillStyle = '#00f0ff';
+            ctx.font = 'bold 44px Prompt, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('PORTFOLIO SHOWCASE', 512, 75);
+
+            ctx.textAlign = 'left';
+            ctx.font = 'bold 26px Prompt, sans-serif';
+
+            ctx.fillStyle = '#ff0055'; ctx.fillRect(60, 120, 20, 20);
+            ctx.fillStyle = '#ffffff'; ctx.fillText('1. Unity Game Development', 100, 140);
+
+            ctx.fillStyle = '#00ff88'; ctx.fillRect(60, 220, 20, 20);
+            ctx.fillStyle = '#ffffff'; ctx.fillText('2. Maya 3D Character & Animation', 100, 240);
+
+            ctx.fillStyle = '#ffbb00'; ctx.fillRect(60, 320, 20, 20);
+            ctx.fillStyle = '#ffffff'; ctx.fillText('3. Blender Realistic Models & Assets', 100, 340);
+
+            ctx.fillStyle = '#00f0ff';
+            ctx.font = 'bold 22px Prompt, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('[ CLICK TO VIEW DETAILS ]', 512, 450);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.needsUpdate = true;
+            return texture;
+        }
+
+        function init() {
+            const container = document.getElementById('canvas-container');
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color('#0b0f19');
+            scene.fog = new THREE.FogExp2('#0b0f19', 0.025);
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.copy(targetCameraPos);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.1;
+            container.appendChild(renderer.domElement);
+
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.maxPolarAngle = Math.PI / 2 + 0.05;
+            controls.minDistance = 2;
+            controls.maxDistance = 35;
+            controls.target.copy(targetLookAt);
+
+            setupLights();
+            buildEnvironment();
+            buildTruck();
+
+            window.addEventListener('resize', onWindowResize);
+            window.addEventListener('click', onDocumentClick);
+
+            setTimeout(() => {
+                const loader = document.getElementById('loader');
+                if (loader) {
+                    loader.style.opacity = '0';
+                    setTimeout(() => loader.remove(), 800);
+                }
+            }, 1000);
+
+            animate();
+        }
+
+        function setupLights() {
+            const ambient = new THREE.AmbientLight('#ffffff', 0.6);
+            scene.add(ambient);
+
+            const sunLight = new THREE.DirectionalLight('#ffffff', 1.2);
+            sunLight.position.set(15, 25, 10);
+            sunLight.castShadow = true;
+            sunLight.shadow.mapSize.width = 2048;
+            sunLight.shadow.mapSize.height = 2048;
+            scene.add(sunLight);
+
+            const pinkLight = new THREE.PointLight('#ff6b81', 3, 15);
+            pinkLight.position.set(0, 3, 3);
+            scene.add(pinkLight);
+
+            const cyanLight = new THREE.PointLight('#00f0ff', 3, 15);
+            cyanLight.position.set(0, 3, -5);
+            scene.add(cyanLight);
+
+            const warmInterior = new THREE.PointLight('#ffea85', 2, 8);
+            warmInterior.position.set(0, 2.2, 0);
+            scene.add(warmInterior);
+        }
+
+        function buildEnvironment() {
+            const groundGeo = new THREE.PlaneGeometry(80, 80);
+            const groundMat = new THREE.MeshStandardMaterial({ color: 0x111625, roughness: 0.8 });
+            const ground = new THREE.Mesh(groundGeo, groundMat);
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            scene.add(ground);
+
+            const grid = new THREE.GridHelper(80, 40, 0xff6b81, 0x1e293b);
+            grid.position.y = 0.01;
+            scene.add(grid);
+        }
+
+        function buildTruck() {
+            truckGroup = new THREE.Group();
+            scene.add(truckGroup);
+
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0xff6b81, roughness: 0.3 });
+            const whiteMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.3 });
+            const chromeMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.9, roughness: 0.1 });
+            const darkMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.5 });
+            const glassMat = new THREE.MeshPhysicalMaterial({ color: 0xffffff, transparent: true, opacity: 0.35, roughness: 0.1, transmission: 0.9 });
+            const rubberMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.9 });
+            const emissiveYellow = new THREE.MeshStandardMaterial({ color: 0xfffb7d, emissive: 0xffea00, emissiveIntensity: 0.8 });
+
+            // Body Chassis
+            const chassisGeo = new THREE.BoxGeometry(3.2, 1.4, 6.5);
+            const chassis = new THREE.Mesh(chassisGeo, bodyMat);
+            chassis.position.set(0, 1.1, 0);
+            chassis.castShadow = true;
+            truckGroup.add(chassis);
+
+            // Cream Roof
+            const roofGeo = new THREE.BoxGeometry(3.25, 1.3, 4.2);
+            const roof = new THREE.Mesh(roofGeo, whiteMat);
+            roof.position.set(0, 2.35, -0.2);
+            roof.castShadow = true;
+            truckGroup.add(roof);
+
+            // Front Cabin Top
+            const cabinGeo = new THREE.BoxGeometry(3.1, 1.1, 2.2);
+            const cabin = new THREE.Mesh(cabinGeo, bodyMat);
+            cabin.position.set(0, 2.25, 2.0);
+            truckGroup.add(cabin);
+
+            // Windshield
+            const windshieldGeo = new THREE.BoxGeometry(2.9, 0.8, 0.1);
+            const windshield = new THREE.Mesh(windshieldGeo, glassMat);
+            windshield.position.set(0, 2.3, 3.05);
+            windshield.rotation.x = -0.15;
+            truckGroup.add(windshield);
+
+            // Open Hatch Window
+            const hatchGeo = new THREE.BoxGeometry(0.1, 1.2, 2.4);
+            const hatch = new THREE.Mesh(hatchGeo, whiteMat);
+            hatch.position.set(1.62, 2.8, -0.2);
+            hatch.rotation.z = Math.PI / 3;
+            truckGroup.add(hatch);
+
+            // Service Counter
+            const counterGeo = new THREE.BoxGeometry(0.6, 0.1, 2.4);
+            const counter = new THREE.Mesh(counterGeo, chromeMat);
+            counter.position.set(1.7, 1.7, -0.2);
+            truckGroup.add(counter);
+
+            // Wheels
+            const wheelPositions = [[-1.5, 0.55, 2.0], [1.5, 0.55, 2.0], [-1.5, 0.55, -2.0], [1.5, 0.55, -2.0]];
+            wheelPositions.forEach(([x, y, z]) => {
+                const wheelGroup = new THREE.Group();
+                wheelGroup.position.set(x, y, z);
+
+                const tire = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 0.4, 32), rubberMat);
+                tire.rotation.z = Math.PI / 2;
+                tire.castShadow = true;
+                wheelGroup.add(tire);
+
+                const rim = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.42, 16), chromeMat);
+                rim.rotation.z = Math.PI / 2;
+                wheelGroup.add(rim);
+
+                truckGroup.add(wheelGroup);
+            });
+
+            // Headlights & Bumper
+            const bumper = new THREE.Mesh(new THREE.BoxGeometry(3.3, 0.3, 0.2), chromeMat);
+            bumper.position.set(0, 0.6, 3.3);
+            truckGroup.add(bumper);
+
+            const leftLight = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.1, 16), emissiveYellow);
+            leftLight.rotation.x = Math.PI / 2;
+            leftLight.position.set(-1.1, 1.2, 3.28);
+            const rightLight = leftLight.clone();
+            rightLight.position.set(1.1, 1.2, 3.28);
+            truckGroup.add(leftLight);
+            truckGroup.add(rightLight);
+
+            // 1. FRONT SIGNBOARD: SKILLS (ป้ายหน้ารถ)
+            const frontGeo = new THREE.BoxGeometry(2.4, 0.8, 0.08);
+            const frontMat = new THREE.MeshStandardMaterial({ map: createFrontSkillTexture(), roughness: 0.2 });
+            frontSign = new THREE.Mesh(frontGeo, frontMat);
+            frontSign.position.set(0, 2.85, 3.08);
+            frontSign.name = "skills_board";
+            truckGroup.add(frontSign);
+            interactiveObjects.push(frontSign);
+
+            // 2. MENU BOARD: ABOUT ME (ใบเมนู)
+            const menuGroup = new THREE.Group();
+            menuGroup.position.set(1.8, 1.6, 1.5);
+            menuSign = new THREE.Mesh(new THREE.BoxGeometry(0.05, 1.5, 1.0), new THREE.MeshStandardMaterial({ map: createMenuTexture() }));
+            menuSign.name = "menu_board";
+            menuGroup.add(menuSign);
+
+            const leg1 = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.2), darkMat);
+            leg1.position.set(0, -0.8, -0.4);
+            const leg2 = leg1.clone();
+            leg2.position.set(0, -0.8, 0.4);
+            menuGroup.add(leg1); menuGroup.add(leg2);
+            truckGroup.add(menuGroup);
+            interactiveObjects.push(menuSign);
+
+            // 3. BACK LED BILLBOARD: PORTFOLIO (ป้าย LED ด้านหลัง)
+            const ledFrame = new THREE.Mesh(new THREE.BoxGeometry(2.8, 1.6, 0.15), darkMat);
+            ledFrame.position.set(0, 2.2, -3.3);
+            truckGroup.add(ledFrame);
+
+            ledSign = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 1.4), new THREE.MeshBasicMaterial({ map: createLedPortfolioTexture(), side: THREE.DoubleSide }));
+            ledSign.position.set(0, 2.2, -3.38);
+            ledSign.rotation.y = Math.PI;
+            ledSign.name = "led_board";
+            truckGroup.add(ledSign);
+            interactiveObjects.push(ledSign);
+
+            // Roof Giant Ice Cream Cone
+            const iceCreamGroup = new THREE.Group();
+            iceCreamGroup.position.set(0, 3.6, -0.2);
+
+            const cone = new THREE.Mesh(new THREE.ConeGeometry(0.7, 1.5, 16), new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.6 }));
+            cone.rotation.x = Math.PI;
+            iceCreamGroup.add(cone);
+
+            const scoop1 = new THREE.Mesh(new THREE.SphereGeometry(0.7, 32, 32), new THREE.MeshStandardMaterial({ color: 0xff6b81 }));
+            scoop1.position.y = 0.8;
+            iceCreamGroup.add(scoop1);
+
+            const scoop2 = new THREE.Mesh(new THREE.SphereGeometry(0.5, 32, 32), whiteMat);
+            scoop2.position.y = 1.3;
+            iceCreamGroup.add(scoop2);
+
+            truckGroup.add(iceCreamGroup);
+
+            // Interior Setup
+            buildInterior();
+        }
+
+        function buildInterior() {
+            const interiorGroup = new THREE.Group();
+            interiorGroup.position.set(0, 1.8, -0.2);
+
+            const metalMat = new THREE.MeshStandardMaterial({ color: 0xcbd5e1, metalness: 0.8, roughness: 0.2 });
+            const counterMat = new THREE.MeshStandardMaterial({ color: 0x334155 });
+
+            // Freezer Tub Counter
+            const tubCounter = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.8, 2.8), counterMat);
+            tubCounter.position.set(-0.8, -0.2, 0);
+            interiorGroup.add(tubCounter);
+
+            // Tubs
+            const colors = [0xff6b81, 0xffd166, 0x48dbfb, 0x1dd1a1];
+            colors.forEach((c, i) => {
+                const tub = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.1, 0.4), new THREE.MeshStandardMaterial({ color: c }));
+                tub.position.set(-0.8, 0.22, -0.8 + i * 0.5);
+                interiorGroup.add(tub);
+            });
+
+            // Soft Serve Machine
+            const machine = new THREE.Mesh(new THREE.BoxGeometry(0.6, 1.0, 0.6), metalMat);
+            machine.position.set(0.6, 0.3, -1.0);
+            interiorGroup.add(machine);
+
+            // Steering Wheel
+            const steering = new THREE.Mesh(new THREE.TorusGeometry(0.25, 0.04, 16, 32), new THREE.MeshStandardMaterial({ color: 0x0f172a }));
+            steering.position.set(0.8, 0.5, 2.0);
+            steering.rotation.x = Math.PI / 4;
+            interiorGroup.add(steering);
+
+            truckGroup.add(interiorGroup);
+        }
+
+        window.focusCamera = function(viewKey) {
+            document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('active'));
+            closeModals();
+
+            switch (viewKey) {
+                case 'overview':
+                    targetCameraPos.set(12, 7, 14);
+                    targetLookAt.set(0, 1.5, 0);
+                    document.getElementById('btn-overview').classList.add('active');
+                    break;
+                case 'menu':
+                    targetCameraPos.set(4.5, 2.0, 2.2);
+                    targetLookAt.set(1.8, 1.6, 1.5);
+                    document.getElementById('btn-menu').classList.add('active');
+                    setTimeout(() => openModal('modal-menu'), 800);
+                    break;
+                case 'skills':
+                    targetCameraPos.set(0, 2.85, 7.5);
+                    targetLookAt.set(0, 2.85, 3.08);
+                    document.getElementById('btn-skills').classList.add('active');
+                    setTimeout(() => openModal('modal-skills'), 800);
+                    break;
+                case 'portfolio':
+                    targetCameraPos.set(0, 2.2, -8.0);
+                    targetLookAt.set(0, 2.2, -3.3);
+                    document.getElementById('btn-portfolio').classList.add('active');
+                    setTimeout(() => openModal('modal-portfolio'), 800);
+                    break;
+                case 'inside':
+                    targetCameraPos.set(3.2, 2.2, -0.2);
+                    targetLookAt.set(0, 1.8, -0.2);
+                    document.getElementById('btn-inside').classList.add('active');
+                    setTimeout(() => openModal('modal-inside'), 800);
+                    break;
+            }
+        };
+
+        function openModal(id) {
+            closeModals();
+            const el = document.getElementById(id);
+            if (el) el.classList.add('active');
+        }
+
+        window.closeModals = function() {
+            document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
+        };
+
+        function onDocumentClick(event) {
+            if (event.target.closest('button') || event.target.closest('.modal')) return;
+
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(interactiveObjects, false);
+
+            if (intersects.length > 0) {
+                const name = intersects[0].object.name;
+                if (name === 'menu_board') focusCamera('menu');
+                else if (name === 'skills_board') focusCamera('skills');
+                else if (name === 'led_board') focusCamera('portfolio');
+            }
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate(time) {
+            requestAnimationFrame(animate);
+
+            camera.position.lerp(targetCameraPos, 0.04);
+            controls.target.lerp(targetLookAt, 0.04);
+            controls.update();
+
+            if (truckGroup) {
+                truckGroup.position.y = Math.sin(time * 0.002) * 0.05;
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        init();
+    </script>
+</body>
+</html>
