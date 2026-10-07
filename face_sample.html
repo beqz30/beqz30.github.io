@@ -14,9 +14,42 @@
   <a-assets>
     <a-asset-item id="glassesModel" src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/examples/face-tracking/assets/glasses/scene.gltf"></a-asset-item>
     <a-asset-item id="headModel" src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/examples/face-tracking/assets/sparkar/headOccluder.glb"></a-asset-item>
-  </a-assets>
-
-
+ <a-asset-item id="head1Model" src="https://kanatipjantiun-cpu.github.io/hat.glb"></a-assets>
+ </a-assets>
+  
+  <!-- Anchor กับตำแหน่งบนใบหน้า -->
+  <a-entity mindar-face-target="anchorIndex: 1 ">
+    <a-box position="0 0 0" scale="0.1 0.1 0.1" color="red"></a-box>
+  </a-entity>
+ <a-entity mindar-face-target="anchorIndex: 386 ">
+    <a-box position="0 0 0" scale="0.01 0.01 0.01" color="red"></a-box>
+  </a-entity>
+  <a-entity mindar-face-target="anchorIndex: 374 ">
+    <a-box position="0 0 0" scale="0.01 0.01 0.01" color="red"></a-box>
+  </a-entity>
+  <a-entity mindar-face-target="anchorIndex: 159 ">
+    <a-box position="0 0 0" scale="0.01 0.01 0.01" color="red"></a-box>
+  </a-entity>
+    <a-entity mindar-face-target="anchorIndex: 145 ">
+    <a-box position="0 0 0" scale="0.01 0.01 0.01" color="red"></a-box>
+  </a-entity>
+ <a-entity mindar-face-target="anchorIndex: 13 ">
+    <a-box position="0 0 0" scale="0.01 0.01 0.01" color="red"></a-box>
+  </a-entity>
+ <a-entity mindar-face-target="anchorIndex: 14 ">
+    <a-box position="0 0 0" scale="0.01 0.01 0.01" color="red"></a-box>
+  </a-entity>
+   <a-entity mindar-face-target="anchorIndex: 285 ">
+    <a-box position="0 0 0" scale="0.01 0.01 0.01" color="red"></a-box>
+  </a-entity>
+   <a-entity mindar-face-target="anchorIndex: 65 ">
+    <a-box position="0 0 0" scale="0.01 0.01 0.01" color="red"></a-box>
+  </a-entity>
+  
+   <a-entity mindar-face-target="anchorIndex: 10 ">
+    <a-box position="0 5 0" scale="0.5 0.5 0.5" color="red"></a-box>
+  </a-entity>
+     
 <a-entity mindar-face-target="anchorIndex: 168">
     <a-gltf-model 
         rotation="0 0 0" position="0 0 0" scale="0.008 0.008 0.008" 
@@ -24,10 +57,13 @@
     </a-gltf-model>
   </a-entity>
 
-
-
-
-
+  <a-entity mindar-face-target="anchorIndex: 10">
+    <a-gltf-model 
+        rotation="0 0 0" position="0 0.5 0" scale=" 0.01 0.01 0.01 " 
+        src="#head1Model">
+    </a-gltf-model>
+  </a-entity>
+  
   <a-camera active="false" position="0 0 0"> </a-camera>
 
 </a-scene>
